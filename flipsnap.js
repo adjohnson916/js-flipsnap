@@ -153,12 +153,14 @@ Flipsnap.prototype.init = function(element, opts) {
 
   for (var i = 0, l = eventTypes.length; i < l; ++i) {
     var type = eventTypes[i];
-  	if (opts.useJQuery) {
-    	self.$element.on(events.start[type], self.handleEvent);
-  	}
-  	else {
-    	self.element.addEventListener(events.start[type], self, false);
-  	}
+    if (opts.useJQuery) {
+      self.$element.on(events.start[type], function () {
+        self.handleEvent.apply(self, arguments);
+      });
+    }
+    else {
+      self.element.addEventListener(events.start[type], self, false);
+    }
   }
 
   return self;
@@ -328,8 +330,12 @@ Flipsnap.prototype._touchStart = function(event) {
   });
 
   if (self.opts.useJQuery) {
-    self.$element.on(events.move[self._eventType], self.handleEvent);
-    $(document).on(events.end[self._eventType], self.handleEvent);
+    self.$element.on(events.move[self._eventType], function () {
+      self.handleEvent.apply(self, arguments);
+    });
+    $(document).on(events.end[self._eventType], function () {
+      self.handleEvent.apply(self, arguments);
+    });
   }
   else {
     self.element.addEventListener(events.move[self._eventType], self, false);
@@ -412,7 +418,9 @@ Flipsnap.prototype._touchMove = function(event) {
       event.stopPropagation();
       self.moveReady = true;
       if (self.opts.useJQuery) {
-        self.$element.on('click', self.handleEvent);
+        self.$element.on('click', function () {
+          self.handleEvent.apply(self, arguments);
+        });
       }
       else {
         self.element.addEventListener('click', self, true);
@@ -537,24 +545,24 @@ Flipsnap.prototype._triggerEvent = function(type, bubbles, cancelable, data) {
   var ev;
   
   if (opts.useJQuery) {
-	  ev = jQuery.Event( type, data );
-	  
-	  return self.$element.trigger(ev);
+    ev = jQuery.Event( type, data );
+    
+    return self.$element.trigger(ev);
   }
   else {
-  	ev = document.createEvent('Event');
-	  ev.initEvent(type, bubbles, cancelable);
-	
-	  if (data) {
-	    for (var d in data) {
-	      if (data.hasOwnProperty(d)) {
-	        ev[d] = data[d];
-	      }
-	    }
-	  }
-	
-	  return self.element.dispatchEvent(ev);
-	}
+    ev = document.createEvent('Event');
+    ev.initEvent(type, bubbles, cancelable);
+  
+    if (data) {
+      for (var d in data) {
+        if (data.hasOwnProperty(d)) {
+          ev[d] = data[d];
+        }
+      }
+    }
+  
+    return self.element.dispatchEvent(ev);
+  }
 };
 
 function getPage(event, page) {
