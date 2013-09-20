@@ -74,8 +74,8 @@ Flipsnap.prototype.init = function(element, opts) {
   // set opts
   opts = opts || {};
   self.opts = opts;
-  opts.useJQuery = (opts.useJQuery === undefined) ? window.jQuery !== undefined : opts.useJQuery;
-
+  opts.useJQuery = (opts.useJQuery === undefined) ? ( document.addEventListener == undefined && window.jQuery !== undefined ) : opts.useJQuery;
+  
   if (support.addEventListener) {
     document.addEventListener('gesturestart', function() {
       gestureStart = true;
@@ -368,7 +368,9 @@ Flipsnap.prototype._touchMove = function(event) {
   if (!self.scrolling || gestureStart) {
     return;
   }
-
+  
+  event = event.originalEvent || event;
+  
   var pageX = getPage(event, 'pageX'),
     pageY = getPage(event, 'pageY'),
     distX,
@@ -528,7 +530,13 @@ Flipsnap.prototype.destroy = function() {
   
   for (var i = 0, l = eventTypes.length; i < l; ++i) {
     var type = eventTypes[i];
-    self.element.removeEventListener(events.start[type], self, false);
+    if (self.opts.useJQuery) {
+      // Todo: use namespaced events to remove only our events.
+      self.$element.off(events.start[type]);
+    }
+    else {
+      self.element.removeEventListener(events.start[type], self, false);
+    }
   };
 };
 
