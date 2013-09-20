@@ -153,7 +153,12 @@ Flipsnap.prototype.init = function(element, opts) {
 
   for (var i = 0, l = eventTypes.length; i < l; ++i) {
     var type = eventTypes[i];
-    self.$element.on(events.start[type], self.handleEvent, false);
+  	if (opts.useJQuery) {
+    	self.$element.on(events.start[type], self.handleEvent);
+  	}
+  	else {
+    	self.element.addEventListener(events.start[type], self, false);
+  	}
   }
 
   return self;
@@ -529,10 +534,27 @@ Flipsnap.prototype._getTranslate = function(x) {
 
 Flipsnap.prototype._triggerEvent = function(type, bubbles, cancelable, data) {
   var self = this;
+  var ev;
   
-  var ev = jQuery.Event( type );
-
-  return self.$element.trigger(ev);
+  if (opts.useJQuery) {
+	  ev = jQuery.Event( type, data );
+	  
+	  return self.$element.trigger(ev);
+  }
+  else {
+  	ev = document.createEvent('Event');
+	  ev.initEvent(type, bubbles, cancelable);
+	
+	  if (data) {
+	    for (var d in data) {
+	      if (data.hasOwnProperty(d)) {
+	        ev[d] = data[d];
+	      }
+	    }
+	  }
+	
+	  return self.element.dispatchEvent(ev);
+	}
 };
 
 function getPage(event, page) {
