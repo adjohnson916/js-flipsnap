@@ -544,7 +544,7 @@ Flipsnap.prototype._triggerEvent = function(type, bubbles, cancelable, data) {
   var self = this;
   var ev;
   
-  if (opts.useJQuery) {
+  if (self.opts.useJQuery) {
     ev = jQuery.Event( type, data );
     
     return self.$element.trigger(ev);
