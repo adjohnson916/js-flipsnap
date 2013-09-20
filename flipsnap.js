@@ -62,16 +62,6 @@ var events = {
   }
 };
 
-if (support.addEventListener) {
-  document.addEventListener('gesturestart', function() {
-    gestureStart = true;
-  });
-
-  document.addEventListener('gestureend', function() {
-    gestureStart = false;
-  });
-}
-
 function Flipsnap(element, opts) {
   return (this instanceof Flipsnap)
     ? this.init(element, opts)
@@ -80,11 +70,43 @@ function Flipsnap(element, opts) {
 
 Flipsnap.prototype.init = function(element, opts) {
   var self = this;
+  
+  // set opts
+  opts = opts || {};
+  self.opts = opts;
+  opts.useJQuery = (opts.useJQuery === undefined) ? window.jQuery !== undefined : opts.useJQuery;
+
+  if (support.addEventListener) {
+    document.addEventListener('gesturestart', function() {
+      gestureStart = true;
+    });
+
+    document.addEventListener('gestureend', function() {
+      gestureStart = false;
+    });
+  }
+  else if (self.opts.useJQuery) {
+    $(document).on('gesturestart', function() {
+      gestureStart = true;
+    });
+
+    $(document).on('gestureend', function() {
+      gestureStart = false;
+    });
+  }
 
   // set element
   self.element = element;
   if (typeof element === 'string') {
-    self.element = document.querySelector(element);
+    if (opts.useJQuery) {
+      self.element = jQuery(element).get(0);
+    }
+    else {
+      self.element = document.querySelector(element);
+    }
+  }
+  if (opts.useJQuery) {
+    self.$element = $(element);
   }
 
   if (!self.element) {
@@ -95,8 +117,6 @@ Flipsnap.prototype.init = function(element, opts) {
     self.element.style.msTouchAction = 'none';
   }
 
-  // set opts
-  opts = opts || {};
   self.distance = opts.distance;
   self.maxPoint = opts.maxPoint;
   self.disableTouch = (opts.disableTouch === undefined) ? false : opts.disableTouch;
@@ -131,9 +151,10 @@ Flipsnap.prototype.init = function(element, opts) {
   // initilize
   self.refresh();
 
-  eventTypes.forEach(function(type) {
-    self.element.addEventListener(events.start[type], self, false);
-  });
+  for (var i = 0, l = eventTypes.length; i < l; ++i) {
+    var type = eventTypes[i];
+    self.$element.on(events.start[type], self.handleEvent, false);
+  }
 
   return self;
 };
@@ -301,8 +322,14 @@ Flipsnap.prototype._touchStart = function(event) {
     }
   });
 
-  self.element.addEventListener(events.move[self._eventType], self, false);
-  document.addEventListener(events.end[self._eventType], self, false);
+  if (self.opts.useJQuery) {
+    self.$element.on(events.move[self._eventType], self.handleEvent);
+    $(document).on(events.end[self._eventType], self.handleEvent);
+  }
+  else {
+    self.element.addEventListener(events.move[self._eventType], self, false);
+    document.addEventListener(events.end[self._eventType], self, false);
+  }
 
   if (self._eventType === 'mouse') {
     event.preventDefault();
@@ -379,7 +406,12 @@ Flipsnap.prototype._touchMove = function(event) {
       event.preventDefault();
       event.stopPropagation();
       self.moveReady = true;
-      self.element.addEventListener('click', self, true);
+      if (self.opts.useJQuery) {
+        self.$element.on('click', self.handleEvent);
+      }
+      else {
+        self.element.addEventListener('click', self, true);
+      }
     }
     else if (deltaY > 5) {
       self.scrolling = false;
@@ -480,10 +512,11 @@ Flipsnap.prototype._animate = function(x, transitionDuration) {
 
 Flipsnap.prototype.destroy = function() {
   var self = this;
-
-  eventTypes.forEach(function(type) {
+  
+  for (var i = 0, l = eventTypes.length; i < l; ++i) {
+    var type = eventTypes[i];
     self.element.removeEventListener(events.start[type], self, false);
-  });
+  };
 };
 
 Flipsnap.prototype._getTranslate = function(x) {
@@ -496,19 +529,10 @@ Flipsnap.prototype._getTranslate = function(x) {
 
 Flipsnap.prototype._triggerEvent = function(type, bubbles, cancelable, data) {
   var self = this;
+  
+  var ev = jQuery.Event( type );
 
-  var ev = document.createEvent('Event');
-  ev.initEvent(type, bubbles, cancelable);
-
-  if (data) {
-    for (var d in data) {
-      if (data.hasOwnProperty(d)) {
-        ev[d] = data[d];
-      }
-    }
-  }
-
-  return self.element.dispatchEvent(ev);
+  return self.$element.trigger(ev);
 };
 
 function getPage(event, page) {
